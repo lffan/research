@@ -1,0 +1,7 @@
+*.pdf
+*.jpg
+.ipynb_checkpoints
+*.pyc
+*.bib
+*.tex
+*.sty
