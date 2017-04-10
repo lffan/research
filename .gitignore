@@ -5,5 +5,3 @@
 *.tex
 *.sty
 .ipynb_checkpoints
-qutip-lectures
-scientific-python-lectures
