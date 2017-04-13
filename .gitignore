@@ -5,4 +5,5 @@
 *.tex
 *.sty
 .ipynb_checkpoints
+test.ipynb
 qutip-lectures
