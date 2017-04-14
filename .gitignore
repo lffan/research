@@ -4,6 +4,7 @@
 *.bib
 *.tex
 *.sty
+*.dat
 .ipynb_checkpoints
 test.ipynb
 qutip-lectures
