@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.integrate import odeint
-from scipy.sparse import coo_matrix
+# from scipy.sparse import coo_matrix
 from qutip import *
 
 class LaserOneMode(object):
@@ -9,8 +9,7 @@ class LaserOneMode(object):
         Qunatum Optics (Scully and Zubairy) Page? Chapter 11.)
     """
     
-    def __init__(self, w_c, w_a, g, ra, gamma, kappa, N_max=None, init_rho=None,
-                 init_pn=None, t_list=None):
+    def __init__(self, w_c, w_a, g, ra, gamma, kappa):
         """ w_c: cavity frequency
             w_a: atom frequency
             g: atom-cavity interation strength
@@ -28,17 +27,14 @@ class LaserOneMode(object):
         self.gamma = gamma
         self.kappa = kappa
         
-        self.N_max = N_max
-        self.init_rho = init_rho
-        self.init_pn = init_pn
-        self.t_list = t_list
-        self.rhos = None
-        self.pns = None
-        
         self.A = 2 * ra * g**2 / gamma**2
         self.B = 4 * self.A * g**2 / gamma**2
         self.BdA = 4 * g**2 / gamma**2
         
+        self.N_max = None
+        self.t_list = None
+        self.init_rho = None
+        self.rhos = None      
     
     def get_atom_cavity_args(self):
         """ return the setup parameters for the atom and cavity
@@ -55,10 +51,19 @@ class LaserOneMode(object):
     
         
     # ode solver wrapper
-    def evolution(self, t_list, N_max, eq, init_rho=None, init_pn=None):
+    def evolution(self, init_rho, t_list, N_max, eq, diag):
         """ **ode solver wrapper**
-            Give the solution to the equation of motion given on the
-            time list and the initial state
+            Return the solution to the equation of motion given on a
+            time list and an initial state.
+            init_rho: initial density matrix given as a quitp.Qobj
+            t_list: a list of time points to be calculated on
+            N_max: truncted photon numbers
+            eq: method for ode solver
+                - 'pn': calculate diagonal terms only
+                - 'rho': calculate all the elements of the density matirx
+            diag: indicate whether the matrix is diagonal or not
+                - 'True': return rho given the diagonal terms
+                - 'False': will not return rho as off-diagonal terms are unknown
         """
         self.N_max = N_max
         self.t_list = t_list
@@ -68,21 +73,37 @@ class LaserOneMode(object):
         
         # calculate evolutions for diagonal terms only
         if eq is 'pn':
-            f = np.array([self._fnm(n, n) for n in n_list])
+            init_pn = np.diag(init_rho.data.toarray()) # extract diagonal terms into an array
+            
+            f = np.array([self._fnm(n, n) for n in n_list]) # parameters
             g = np.array([self._gnm(n, n) for n in n_list])
             h = np.array([self._hnm(n, n) for n in n_list])
-            self.pns = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,))
-            return self.pns
+            
+            # solve the ode
+            self.pns = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,)) 
+            
+            if diag: # if the density matrix is diagonal, return an array of rhos
+                self.rhos = [qdiags(diag, offset=0) for diag in self.pns]
+        
         # calculate evolutions for the whole density matrix
         elif eq is 'rho':
-            f = np.array([self._fnm(i, j) for i in n_list 
+            # convert qutip.Qobj into an matrix, then flat it to an array
+            init_rho = inti_rho.data.toarray().reshape(-1)            
+            
+            f = np.array([self._fnm(i, j) for i in n_list          # parameters 
                           for j in n_list]).reshape(N_max, N_max)
             g = np.array([self._gnm(i, j) for i in n_list 
                           for j in n_list]).reshape(N_max, N_max)
             h = np.array([self._hnm(i, j) for i in n_list 
                           for j in n_list]).reshape(N_max, N_max)
-            self.rhos = odeint(self._rho_dot, init_rho, t_list, args=(f, g, h, ))
-            return self.rhos
+            
+            # sovle the ode
+            self.arrays = odeint(self._rho_dot, init_array, t_list, args=(f, g, h, ))
+            
+            # convert arrays back to density matrices (rhos)
+            self.rhos = [Qobj(a.reshape(self.N_max, self.N_max)) for a in self.arrays]
+        
+        return self.rhos
         
 
     # coefficients of the equation of motion for rho
