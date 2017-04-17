@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.integrate import odeint
+from scipy.integrate import odeint, complex_ode
 # from scipy.sparse import coo_matrix
 from qutip import *
 
@@ -16,7 +16,7 @@ class LaserOneMode(object):
             ra: pumping rate
             gamma: atom damping rate
             kappa: cavity damping rate
-            init_rho: initial cavity state (an qutip.Qobj object)
+            init_state: initial cavity state (an qutip.Qobj object)
             the atom is assumed in the ground state at the beginning
         """
         self.w_c = w_c
@@ -33,14 +33,39 @@ class LaserOneMode(object):
         
         self.N_max = None
         self.t_list = None
-        self.init_rho = None
-        self.rhos = None      
+        self.init_state = None
+        self.rhos = []
+        self.pns = []
+        
     
     def get_atom_cavity_args(self):
         """ return the setup parameters for the atom and cavity
         """
         return {'w_c': self.w_c, 'w_a': self.w_a, 'g': self.g, 
                 'ra': self.ra, 'gamma': self.gamma, 'kapa': self.kappa}
+    
+    
+    def get_pns(self):
+        """ return diagonal terms
+        """
+        return self.pns
+    
+    
+    def get_rhos(self):
+        """ return the whole denstiy matrix
+        """
+        return self.rhos
+    
+    
+    def get_steady_state(self):
+        """ return the last elements of pns and rhos
+        """
+        steady_pn, steady_rho = None, None
+        if len(self.pns) > 0:
+            steady_pn = self.pns[-1]
+        if len(self.rhos) > 0:
+            steady_rho = self.rhos[-1]
+        return steady_pn, steady_rho
     
     
     def steady_average_n(self):
@@ -50,60 +75,69 @@ class LaserOneMode(object):
         return self.A * (self.A - self.kappa) / self.kappa / self.B
     
         
-    # ode solver wrapper
-    def evolution(self, init_rho, t_list, N_max, eq, diag):
-        """ **ode solver wrapper**
-            Return the solution to the equation of motion given on a
-            time list and an initial state.
-            init_rho: initial density matrix given as a quitp.Qobj
-            t_list: a list of time points to be calculated on
+    # solve the ode for pn, if rho only contains diagonal terms, reconstruct rho
+    def pn_evolve(self, init_state, N_max, t_list, diag=False):
+        """ **ode solver for pn**
+            init_pn: an array, initial diagonal terms of rho
             N_max: truncted photon numbers
-            eq: method for ode solver
-                - 'pn': calculate diagonal terms only
-                - 'rho': calculate all the elements of the density matirx
-            diag: indicate whether the matrix is diagonal or not
-                - 'True': return rho given the diagonal terms
-                - 'False': will not return rho as off-diagonal terms are unknown
+            t_list: a list of time points to be calculated on
+            diag: if rho only has diagonal terms, reconstruct rho
         """
         self.N_max = N_max
         self.t_list = t_list
-        self.init_rho = init_rho
-        self.init_pn = init_pn
         n_list = np.arange(N_max)
         
-        # calculate evolutions for diagonal terms only
-        if eq is 'pn':
-            init_pn = np.diag(init_rho.data.toarray()) # extract diagonal terms into an array
-            
-            f = np.array([self._fnm(n, n) for n in n_list]) # parameters
-            g = np.array([self._gnm(n, n) for n in n_list])
-            h = np.array([self._hnm(n, n) for n in n_list])
-            
-            # solve the ode
-            self.pns = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,)) 
-            
-            if diag: # if the density matrix is diagonal, return an array of rhos
-                self.rhos = [qdiags(diag, offset=0) for diag in self.pns]
+        # parameters
+        f = np.array([self._fnm(n, n) for n in n_list]) 
+        g = np.array([self._gnm(n, n) for n in n_list])
+        h = np.array([self._hnm(n, n) for n in n_list])
         
-        # calculate evolutions for the whole density matrix
-        elif eq is 'rho':
-            # convert qutip.Qobj into an matrix, then flat it to an array
-            init_rho = inti_rho.data.toarray().reshape(-1)            
-            
-            f = np.array([self._fnm(i, j) for i in n_list          # parameters 
-                          for j in n_list]).reshape(N_max, N_max)
-            g = np.array([self._gnm(i, j) for i in n_list 
-                          for j in n_list]).reshape(N_max, N_max)
-            h = np.array([self._hnm(i, j) for i in n_list 
-                          for j in n_list]).reshape(N_max, N_max)
-            
-            # sovle the ode
-            self.arrays = odeint(self._rho_dot, init_array, t_list, args=(f, g, h, ))
-            
-            # convert arrays back to density matrices (rhos)
-            self.rhos = [Qobj(a.reshape(self.N_max, self.N_max)) for a in self.arrays]
+        # find diagonal terms
+        if init_state.type is 'ket':
+            init_state = ket2dm(init_state)
+        init_pn = np.real(np.diag(init_state.data.toarray()))
         
-        return self.rhos
+        # solve the ode for pn
+        self.pns = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,))
+        
+        # reconstruct rho from pn if only the main diagonal terms exist
+        self.rhos = np.array([Qobj(np.diag(pn)) for pn in self.pns])
+        
+    
+    # solve the ode for rho
+    def rho_evolve(self, init_rho, N_max, t_list):
+        """ **ode solver for the density matrix rho**
+            init_rho: initial density matrix given as a quitp.Qobj
+            N_max: truncted photon numbers
+            t_list: a list of time points to be calculated on
+        """
+        self.N_max = N_max
+        self.t_list = t_list
+        self.init_state = init_rho
+        n_list = np.arange(N_max)
+        
+        # if ket state, convert to density matrix, then to a 1-d array
+        if init_rho.type == 'ket':
+            init_rho = ket2dm(init_rho)
+        init_array = np.real(init_rho.data.toarray().reshape(-1))          
+        
+         # parameters
+        f = np.array([self._fnm(i, j) for i in n_list          
+                      for j in n_list]).reshape(N_max, N_max)
+        g = np.array([self._gnm(i, j) for i in n_list 
+                      for j in n_list]).reshape(N_max, N_max)
+        h = np.array([self._hnm(i, j) for i in n_list 
+                      for j in n_list]).reshape(N_max, N_max)
+
+        # sovle the ode
+        self.arrays = odeint(self._rho_nm_dot, init_array, t_list, args=(f, g, h, ))
+
+        # convert arrays back to density matrices (rhos)
+        self.rhos = np.array([Qobj(a.reshape(self.N_max, self.N_max)) 
+                              for a in self.arrays])
+        
+        # find diagonal terms
+        self.pns = np.array([np.real(np.diag(rho.data.toarray())) for rho in self.rhos])
         
 
     # coefficients of the equation of motion for rho
