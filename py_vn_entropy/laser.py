@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 from scipy.integrate import odeint, complex_ode
 # from scipy.sparse import coo_matrix
 from qutip import *
@@ -32,7 +34,7 @@ class LaserOneMode(object):
         self.BdA = 4 * g**2 / gamma**2
         
         self.N_max = None
-        self.t_list = None
+        self.t_list = []
         self.init_state = None
         self.rhos = []
         self.pns = []
@@ -44,6 +46,10 @@ class LaserOneMode(object):
         return {'w_c': self.w_c, 'w_a': self.w_a, 'g': self.g, 
                 'ra': self.ra, 'gamma': self.gamma, 'kapa': self.kappa}
     
+    def get_abc(self):
+        """ return A, B, kappa
+        """
+        return {'A': self.A, 'B': self.B, 'C': self.kappa}
     
     def get_pns(self):
         """ return diagonal terms
@@ -68,9 +74,9 @@ class LaserOneMode(object):
         return steady_pn, steady_rho
     
     
-    def steady_average_n(self):
+    def steady_aver_n_above_t(self):
         """ Calculate the average photon number in steady state
-            for a laser operated above threshold
+            for a laser operated **above threshold**
         """
         return self.A * (self.A - self.kappa) / self.kappa / self.B
     
@@ -138,6 +144,19 @@ class LaserOneMode(object):
         
         # find diagonal terms
         self.pns = np.array([np.real(np.diag(rho.data.toarray())) for rho in self.rhos])
+        
+    
+    def plot_field_vs_time(self):
+        """ Plot average photon numbers with respect to time
+        """
+        n_list = np.arange(self.N_max)
+        aver_n = [sum(pn * n_list) for pn in self.pns]
+        fig, ax = plt.subplot()
+        ax.plot(self.t_list, aver_n)
+        ax.set_xlabel("time")
+        ax.set_ylabel("average photon number")
+        ax.set_title("Cavity Field vs. Time")
+        return fig, ax
         
 
     # coefficients of the equation of motion for rho
