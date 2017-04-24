@@ -36,8 +36,9 @@ class LaserOneMode(object):
         self.N_max = None
         self.t_list = []
         self.init_state = None
-        self.rhos = []
-        self.pns = []
+        self.rho_vs_t = []
+        self.pn_vs_t = []
+        self.n_vs_t = []
         
     
     def get_atom_cavity_args(self):
@@ -46,35 +47,39 @@ class LaserOneMode(object):
         return {'w_c': self.w_c, 'w_a': self.w_a, 'g': self.g, 
                 'ra': self.ra, 'gamma': self.gamma, 'kapa': self.kappa}
     
+    
     def get_abc(self):
         """ return A, B, kappa
         """
         return {'A': self.A, 'B': self.B, 'C': self.kappa}
     
+    
     def get_pns(self):
         """ return diagonal terms
         """
-        return self.pns
+        return self.pn_vs_t
     
     
     def get_rhos(self):
         """ return the whole denstiy matrix
         """
-        return self.rhos
+        return self.rho_vs_t
     
     
     def get_steady_state(self):
-        """ return the last elements of pns and rhos
+        """ return the last elements of pn_vs_t, rho_vs_t, and n_vs_t
         """
-        steady_pn, steady_rho = None, None
-        if len(self.pns) > 0:
-            steady_pn = self.pns[-1]
-        if len(self.rhos) > 0:
-            steady_rho = self.rhos[-1]
-        return steady_pn, steady_rho
+        steady_pn, steady_rho, steady_avern = None, None, None
+        if len(self.pn_vs_t) > 0:
+            steady_pn = self.pn_vs_t[-1]
+        if len(self.rho_vs_t) > 0:
+            steady_rho = self.rho_vs_t[-1]
+        if len(self.n_vs_t):
+            steady_avern = self_n_vs_t[-1]
+        return steady_pn, steady_rho, steady_avern
     
     
-    def steady_aver_n_above_t(self):
+    def steady_n_approx(self):
         """ Calculate the average photon number in steady state
             for a laser operated **above threshold**
         """
@@ -104,10 +109,10 @@ class LaserOneMode(object):
         init_pn = np.real(np.diag(init_state.data.toarray()))
         
         # solve the ode for pn
-        self.pns = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,))
+        self.pn_vs_t = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,))
         
         # reconstruct rho from pn if only the main diagonal terms exist
-        self.rhos = np.array([Qobj(np.diag(pn)) for pn in self.pns])
+        self.rho_vs_t = np.array([Qobj(np.diag(pn)) for pn in self.pn_vs_t])
         
     
     # solve the ode for rho
@@ -139,24 +144,31 @@ class LaserOneMode(object):
         self.arrays = odeint(self._rho_nm_dot, init_array, t_list, args=(f, g, h, ))
 
         # convert arrays back to density matrices (rhos)
-        self.rhos = np.array([Qobj(a.reshape(self.N_max, self.N_max)) 
+        self.rho_vs_t = np.array([Qobj(a.reshape(self.N_max, self.N_max)) 
                               for a in self.arrays])
         
         # find diagonal terms
-        self.pns = np.array([np.real(np.diag(rho.data.toarray())) for rho in self.rhos])
+        self.pn_vs_t = np.array([np.real(np.diag(rho.data.toarray())) for rho in self.rho_vs_t])
         
     
-    def plot_field_vs_time(self):
+    def plot_n_vs_time(self):
         """ Plot average photon numbers with respect to time
         """
-        n_list = np.arange(self.N_max)
-        aver_n = [sum(pn * n_list) for pn in self.pns]
-        fig, ax = plt.subplot()
-        ax.plot(self.t_list, aver_n)
+        if len(self.n_vs_t) == 0:
+            n_list = np.arange(self.N_max)
+            self.n_vs_t = [sum(pn * n_list) for pn in self.pn_vs_t]
+        fig, ax = plt.subplots(figsize=(6,4))
+        ax.plot(self.t_list, self.n_vs_t)
         ax.set_xlabel("time")
         ax.set_ylabel("average photon number")
         ax.set_title("Cavity Field vs. Time")
         return fig, ax
+    
+    
+    def plot_steady_wigner(self):
+        """ Plot 2D wigner function of the steady state
+        """
+        l2_pn, l2_rho = laser_above.get_steady_state() 
         
 
     # coefficients of the equation of motion for rho
