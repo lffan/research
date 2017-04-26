@@ -1,8 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+
 from scipy.integrate import odeint, complex_ode
+from scipy.linalg import solve
 # from scipy.sparse import coo_matrix
+
 from qutip import *
 
 class LaserOneMode(object):
@@ -40,6 +43,16 @@ class LaserOneMode(object):
         self.pn_vs_t = []
         self.n_vs_t = []
         self.entr_vs_t = []
+        
+        self.steady_pn = None
+        self.steady_n = None
+        self.steady_entr = None
+        
+    
+    def set_N_max(self, N_max):
+        """ set the truncated photon numbers for numerical calcualtions
+        """
+        self.N_max = N_max
         
     
     def get_atom_cavity_args(self):
@@ -171,9 +184,10 @@ class LaserOneMode(object):
         return fig, ax
     
     
-    def calc_entropy(self):
+    def _calc_entropy(self):
         """ Calculate von Neumann entropy given on the rho list
         """
+        print "calculating von Neuman entropy ..."
         self.entr_vs_t = np.array([entropy_vn(rho, 2) for rho in self.rho_vs_t])
     
     
@@ -181,12 +195,12 @@ class LaserOneMode(object):
         """ Plot von Neumann entropy of the cavity field with respect to time
         """
         if len(self.entr_vs_t) == 0:
-            print "vn entropy has not been calculated!"
+            self._calc_entropy()
         fig, ax = plt.subplots(figsize=(6,4))
         ax.plot(self.t_list, self.entr_vs_t)
-        ax.set_xlabel("time", fontsize=14)
-        ax.set_ylabel("von Neumann entropy", fontsize=14)
-        ax.set_title("von Neumann Entropy vs. Time", fontsize=14)
+        ax.set_xlabel("time", fontsize=12)
+        ax.set_ylabel("von Neumann entropy", fontsize=12)
+        ax.set_title("von Neumann Entropy vs. Time", fontsize=12)
         return fig, ax
     
     
@@ -247,5 +261,28 @@ class LaserOneMode(object):
                 if i < self.N_max - 1 and j < self.N_max - 1:
                     rho_new[i, j] += h[i, j] * rho[i + 1, j + 1]
 
-        return rho_new.reshape(-1)  
+        return rho_new.reshape(-1)
+    
+    
+    def solve_steady_state(self, N_max):
+        """ if the state is always diagonal during evolution
+            get the diagonal terms of the steady state
+        """
+        eq = np.zeros([self.N_max, self.N_max])
+        y = np.array([np.finfo(float).eps] * self.N_max)
+
+        for k in range(self.N_max):
+            eq[k, k] = self._fnm(k, k)
+            if k < self.N_max - 1:
+                eq[k, k + 1] = self._hnm(k, k)
+            if k > 0:
+                eq[k, k - 1] = self._gnm(k, k)        
+        pn = solve(eq, y)
+        
+        pn = pn/sum(pn)
+        n = sum(pn * range(self.N_max))
+        entr = sum([- p * np.log2(p) for p in pn if p > 0])
+
+        return pn, n, entr
+    
     
