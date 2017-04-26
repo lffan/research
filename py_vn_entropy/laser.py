@@ -176,7 +176,7 @@ class LaserOneMode(object):
         """
         if len(self.n_vs_t) == 0:
             print "Solve the evolution equation first to obtain average photon numbers!"
-        fig, ax = plt.subplots(figsize=(6,4))
+        fig, ax = plt.subplots(figsize=(5,3))
         ax.plot(self.t_list, self.n_vs_t)
         ax.set_xlabel("time", fontsize=14)
         ax.set_ylabel("average photon number", fontsize=14)
@@ -196,7 +196,7 @@ class LaserOneMode(object):
         """
         if len(self.entr_vs_t) == 0:
             self._calc_entropy()
-        fig, ax = plt.subplots(figsize=(6,4))
+        fig, ax = plt.subplots(figsize=(5,3))
         ax.plot(self.t_list, self.entr_vs_t)
         ax.set_xlabel("time", fontsize=12)
         ax.set_ylabel("von Neumann entropy", fontsize=12)
