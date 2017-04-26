@@ -39,6 +39,7 @@ class LaserOneMode(object):
         self.rho_vs_t = []
         self.pn_vs_t = []
         self.n_vs_t = []
+        self.entr_vs_t = []
         
     
     def get_atom_cavity_args(self):
@@ -114,6 +115,9 @@ class LaserOneMode(object):
         # reconstruct rho from pn if only the main diagonal terms exist
         self.rho_vs_t = np.array([Qobj(np.diag(pn)) for pn in self.pn_vs_t])
         
+        # find average photon numbers
+        self.n_vs_t = np.array([sum(pn * n_list) for pn in self.pn_vs_t])
+        
     
     # solve the ode for rho
     def rho_evolve(self, init_rho, N_max, t_list):
@@ -150,18 +154,39 @@ class LaserOneMode(object):
         # find diagonal terms
         self.pn_vs_t = np.array([np.real(np.diag(rho.data.toarray())) for rho in self.rho_vs_t])
         
+        # find average photon numbers
+        self.n_vs_t = np.array([sum(pn * n_list) for pn in self.pn_vs_t])
+        
     
     def plot_n_vs_time(self):
         """ Plot average photon numbers with respect to time
         """
         if len(self.n_vs_t) == 0:
-            n_list = np.arange(self.N_max)
-            self.n_vs_t = [sum(pn * n_list) for pn in self.pn_vs_t]
+            print "Solve the evolution equation first to obtain average photon numbers!"
         fig, ax = plt.subplots(figsize=(6,4))
         ax.plot(self.t_list, self.n_vs_t)
-        ax.set_xlabel("time")
-        ax.set_ylabel("average photon number")
-        ax.set_title("Cavity Field vs. Time")
+        ax.set_xlabel("time", fontsize=14)
+        ax.set_ylabel("average photon number", fontsize=14)
+        ax.set_title("Average Photon Number vs. Time", fontsize=14)
+        return fig, ax
+    
+    
+    def calc_entropy(self):
+        """ Calculate von Neumann entropy given on the rho list
+        """
+        self.entr_vs_t = np.array([entropy_vn(rho, 2) for rho in self.rho_vs_t])
+    
+    
+    def plot_entropy_vs_time(self):
+        """ Plot von Neumann entropy of the cavity field with respect to time
+        """
+        if len(self.entr_vs_t) == 0:
+            print "vn entropy has not been calculated!"
+        fig, ax = plt.subplots(figsize=(6,4))
+        ax.plot(self.t_list, self.entr_vs_t)
+        ax.set_xlabel("time", fontsize=14)
+        ax.set_ylabel("von Neumann entropy", fontsize=14)
+        ax.set_title("von Neumann Entropy vs. Time", fontsize=14)
         return fig, ax
     
     
