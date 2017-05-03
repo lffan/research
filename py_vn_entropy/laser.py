@@ -8,6 +8,8 @@ from scipy.linalg import solve
 
 from qutip import *
 
+__author__ = "Longfei Fan"
+
 class LaserOneMode(object):
     """ Numerical simulation of laser given on the equation of motion
         for the density matrix of the cavity field in the book of
@@ -69,31 +71,36 @@ class LaserOneMode(object):
     
     
     def get_pns(self):
-        """ return diagonal terms
+        """ return diagonal terms vs. time
         """
         return self.pn_vs_t
     
     
     def get_rhos(self):
-        """ return the whole denstiy matrix
+        """ return the whole denstiy matrix vs. time
         """
         return self.rho_vs_t
     
-    
-    def get_steady_state(self):
-        """ return the last elements of pn_vs_t, rho_vs_t, and n_vs_t
+    def get_ns(self):
+        """ return average photon number vs. time
         """
-        steady_pn, steady_rho, steady_avern = None, None, None
-        if len(self.pn_vs_t) > 0:
-            steady_pn = self.pn_vs_t[-1]
-        if len(self.rho_vs_t) > 0:
-            steady_rho = self.rho_vs_t[-1]
-        if len(self.n_vs_t):
-            steady_avern = self_n_vs_t[-1]
-        return steady_pn, steady_rho, steady_avern
+        return self.n_vs_t
     
     
-    def steady_n_approx(self):
+#     def get_steady_state(self):
+#         """ return the last elements of pn_vs_t, rho_vs_t, and n_vs_t
+#         """
+#         steady_pn, steady_rho, steady_avern = None, None, None
+#         if len(self.pn_vs_t) > 0:
+#             steady_pn = self.pn_vs_t[-1]
+#         if len(self.rho_vs_t) > 0:
+#             steady_rho = self.rho_vs_t[-1]
+#         if len(self.n_vs_t):
+#             steady_avern = self.n_vs_t[-1]
+#         return steady_pn, steady_rho, steady_avern
+    
+    
+    def steady_n_above(self):
         """ Calculate the average photon number in steady state
             for a laser operated **above threshold**
         """
@@ -176,6 +183,7 @@ class LaserOneMode(object):
         """
         if len(self.n_vs_t) == 0:
             print "Solve the evolution equation first to obtain average photon numbers!"
+            return
         fig, ax = plt.subplots(figsize=(5,3))
         ax.plot(self.t_list, self.n_vs_t)
         ax.set_xlabel("time", fontsize=14)
@@ -187,6 +195,9 @@ class LaserOneMode(object):
     def _calc_entropy(self):
         """ Calculate von Neumann entropy given on the rho list
         """
+        if len(self.rho_vs_t) == 0:
+            print "Solve the evolution equation first to obtain entropy!"
+            return
         print "calculating von Neuman entropy ..."
         self.entr_vs_t = np.array([entropy_vn(rho, 2) for rho in self.rho_vs_t])
     
@@ -284,5 +295,18 @@ class LaserOneMode(object):
         entr = sum([- p * np.log2(p) for p in pn if p > 0])
 
         return pn, n, entr
+
     
+def boltzmann(ratio, N_max):
+    """ return an array of pn according to the boltzmann distribution
+    """
+    return np.array([(1 - ratio) * ratio ** n for n in np.arange(N_max)])
+
+
+def poisson(l, N_max):
+    """ return an array of pn according to the Poisson distribution
+    """
+    l = np.float(l)
+    return np.array([np.exp(-l) * l**n / np.math.factorial(n) \
+                     for n in np.arange(N_max)])
     
