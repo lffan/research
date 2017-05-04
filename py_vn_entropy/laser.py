@@ -182,7 +182,7 @@ class LaserOneMode(object):
         """ Plot average photon numbers with respect to time
         """
         if len(self.n_vs_t) == 0:
-            print "Solve the evolution equation first to obtain average photon numbers!"
+            print("Solve the evolution equation first to obtain average photon numbers!")
             return
         fig, ax = plt.subplots(figsize=(5,3))
         ax.plot(self.t_list, self.n_vs_t)
@@ -196,9 +196,9 @@ class LaserOneMode(object):
         """ Calculate von Neumann entropy given on the rho list
         """
         if len(self.rho_vs_t) == 0:
-            print "Solve the evolution equation first to obtain entropy!"
+            print("Solve the evolution equation first to obtain entropy!")
             return
-        print "calculating von Neuman entropy ..."
+        print("calculating von Neuman entropy ...")
         self.entr_vs_t = np.array([entropy_vn(rho, 2) for rho in self.rho_vs_t])
     
     
@@ -246,7 +246,7 @@ class LaserOneMode(object):
         """
         pn_new = np.zeros(self.N_max)
         
-        for n in xrange(self.N_max):
+        for n in range(self.N_max):
             pn_new[n] += f[n] * pn[n]
             if n > 0:
                 pn_new[n] += g[n] * pn[n - 1]
