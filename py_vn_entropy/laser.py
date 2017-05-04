@@ -3,8 +3,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from scipy.integrate import odeint, complex_ode
-from scipy.linalg import solve
-# from scipy.sparse import coo_matrix
+from scipy.linalg import solve, lstsq
+from scipy.sparse.linalg import spsolve, lsqr
+from scipy.stats import poisson
+from scipy.sparse import csr_matrix
 
 from qutip import *
 
@@ -16,7 +18,7 @@ class LaserOneMode(object):
         Qunatum Optics (Scully and Zubairy) Page? Chapter 11.)
     """
     
-    def __init__(self, w_c, w_a, g, ra, gamma, kappa):
+    def __init__(self, g, ra, gamma, kappa):
         """ w_c: cavity frequency
             w_a: atom frequency
             g: atom-cavity interation strength
@@ -26,8 +28,8 @@ class LaserOneMode(object):
             init_state: initial cavity state (an qutip.Qobj object)
             the atom is assumed in the ground state at the beginning
         """
-        self.w_c = w_c
-        self.w_a = w_a
+        # self.w_c = w_c
+        # self.w_a = w_a
         self.g = g
         
         self.ra = ra
@@ -131,12 +133,19 @@ class LaserOneMode(object):
         
         # solve the ode for pn
         self.pn_vs_t = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,))
+        step = round(len(t_list) / 100)
+        self.t_list = t_list[::step]
+        self.pn_vs_t = self.pn_vs_t[::step]
         
         # reconstruct rho from pn if only the main diagonal terms exist
         self.rho_vs_t = np.array([Qobj(np.diag(pn)) for pn in self.pn_vs_t])
         
         # find average photon numbers
         self.n_vs_t = np.array([sum(pn * n_list) for pn in self.pn_vs_t])
+        
+        # find von Neumann entropy
+        pn_vs_t = np.array([pn[pn > 0] for pn in self.pn_vs_t])
+        self.entr_vs_t = np.array([- sum(pn * np.log(pn)) for pn in pn_vs_t])
         
     
     # solve the ode for rho
@@ -184,11 +193,12 @@ class LaserOneMode(object):
         if len(self.n_vs_t) == 0:
             print("Solve the evolution equation first to obtain average photon numbers!")
             return
-        fig, ax = plt.subplots(figsize=(5,3))
-        ax.plot(self.t_list, self.n_vs_t)
-        ax.set_xlabel("time", fontsize=14)
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.plot(self.t_list * self.g, self.n_vs_t)
+        ax.set_xlabel("$gt$ (g * time)", fontsize=14)
         ax.set_ylabel("average photon number", fontsize=14)
         ax.set_title("Average Photon Number vs. Time", fontsize=14)
+        ax.tick_params(axis='both', which='major', labelsize=14)
         return fig, ax
     
     
@@ -205,13 +215,14 @@ class LaserOneMode(object):
     def plot_entropy_vs_time(self):
         """ Plot von Neumann entropy of the cavity field with respect to time
         """
-        if len(self.entr_vs_t) == 0:
-            self._calc_entropy()
-        fig, ax = plt.subplots(figsize=(5,3))
-        ax.plot(self.t_list, self.entr_vs_t)
-        ax.set_xlabel("time", fontsize=12)
-        ax.set_ylabel("von Neumann entropy", fontsize=12)
-        ax.set_title("von Neumann Entropy vs. Time", fontsize=12)
+        # if len(self.entr_vs_t) != len(self.t_list):
+        #     self._calc_entropy()
+        fig, ax = plt.subplots(figsize=(8, 5))
+        ax.plot(self.t_list * self.g, self.entr_vs_t)
+        ax.set_xlabel("$gt$ (g * time)", fontsize=14)
+        ax.set_ylabel("von Neumann entropy", fontsize=14)
+        ax.set_title("von Neumann Entropy vs. Time", fontsize=14)
+        ax.tick_params(axis='both', which='major', labelsize=14)
         return fig, ax
     
     
@@ -275,12 +286,13 @@ class LaserOneMode(object):
         return rho_new.reshape(-1)
     
     
-    def solve_steady_state(self, N_max):
+    def solve_steady_state(self):
         """ if the state is always diagonal during evolution
             get the diagonal terms of the steady state
         """
         eq = np.zeros([self.N_max, self.N_max])
-        y = np.array([np.finfo(float).eps] * self.N_max)
+        y = np.repeat(np.finfo(float).eps, self.N_max)
+        # y = np.repeat(0, self.N_max)
 
         for k in range(self.N_max):
             eq[k, k] = self._fnm(k, k)
@@ -288,25 +300,67 @@ class LaserOneMode(object):
                 eq[k, k + 1] = self._hnm(k, k)
             if k > 0:
                 eq[k, k - 1] = self._gnm(k, k)        
-        pn = solve(eq, y)
+        pn = spsolve(csr_matrix(eq), y)
         
         pn = pn/sum(pn)
         n = sum(pn * range(self.N_max))
         entr = sum([- p * np.log2(p) for p in pn if p > 0])
+        
+        return pn, n, entr
 
+    
+    def solve_steady_state_two(self):
+        """ if the state is always diagonal during evolution
+            get the diagonal terms of the steady state
+        """
+        eq = np.zeros([self.N_max, self.N_max])
+        y = np.repeat(np.finfo(float).eps, self.N_max)
+        # y = np.repeat(0, self.N_max)
+
+        for k in range(self.N_max):
+            eq[k, k] = self._fnm(k, k)
+            if k < self.N_max - 1:
+                eq[k, k + 1] = self._hnm(k, k)
+            if k > 0:
+                eq[k, k - 1] = self._gnm(k, k)        
+        pn = lstsq(eq, y)[0]
+        
+        pn = pn/sum(pn)
+        n = sum(pn * range(self.N_max))
+        entr = sum([- p * np.log2(p) for p in pn if p > 0])
+        
+        return pn, n, entr
+    
+    
+    def solve_steady_state_three(self):
+        """ if the state is always diagonal during evolution
+            get the diagonal terms of the steady state
+        """
+        eq = np.zeros([self.N_max, self.N_max])
+        eq = np.vstack((eq, np.repeat(1, self.N_max)))
+        y = np.repeat(np.finfo(float).eps, self.N_max)
+        y = np.append(y, 1)
+
+        for k in range(self.N_max):
+            eq[k, k] = self._fnm(k, k)
+            if k < self.N_max - 1:
+                eq[k, k + 1] = self._hnm(k, k)
+            if k > 0:
+                eq[k, k - 1] = self._gnm(k, k)
+        
+        eq = np.matrix(eq)
+        y = np.matrix(y).T
+        pn = (eq.T * eq).getI() * eq.T * y
+        pn = np.asarray(pn).reshape(-1)
+        
+        # pn = pn/sum(pn)
+        n = sum(pn * range(self.N_max))
+        entr = sum([- p * np.log2(p) for p in pn if p > 0])
+        
         return pn, n, entr
 
     
 def boltzmann(ratio, N_max):
     """ return an array of pn according to the boltzmann distribution
     """
-    return np.array([(1 - ratio) * ratio ** n for n in np.arange(N_max)])
-
-
-def poisson(l, N_max):
-    """ return an array of pn according to the Poisson distribution
-    """
-    l = np.float(l)
-    return np.array([np.exp(-l) * l**n / np.math.factorial(n) \
-                     for n in np.arange(N_max)])
-    
+    return np.array([(1 - ratio) * ratio ** n for n in np.arange(N_max)])    
