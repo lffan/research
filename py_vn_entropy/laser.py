@@ -62,8 +62,7 @@ class LaserOneMode(object):
     def get_atom_cavity_args(self):
         """ return the setup parameters for the atom and cavity
         """
-        return {'w_c': self.w_c, 'w_a': self.w_a, 'g': self.g, 
-                'ra': self.ra, 'gamma': self.gamma, 'kapa': self.kappa}
+        return {'g': self.g, 'ra': self.ra, 'gamma': self.gamma, 'kapa': self.kappa}
     
     
     def get_abc(self):
@@ -89,20 +88,13 @@ class LaserOneMode(object):
         return self.n_vs_t
     
     
-#     def get_steady_state(self):
-#         """ return the last elements of pn_vs_t, rho_vs_t, and n_vs_t
-#         """
-#         steady_pn, steady_rho, steady_avern = None, None, None
-#         if len(self.pn_vs_t) > 0:
-#             steady_pn = self.pn_vs_t[-1]
-#         if len(self.rho_vs_t) > 0:
-#             steady_rho = self.rho_vs_t[-1]
-#         if len(self.n_vs_t):
-#             steady_avern = self.n_vs_t[-1]
-#         return steady_pn, steady_rho, steady_avern
+    def get_entrs(self):
+        """ return entropy vs. time
+        """
+        return self.entrs_vs_t
     
     
-    def steady_n_above(self):
+    def aver_n_above(self):
         """ Calculate the average photon number in steady state
             for a laser operated **above threshold**
         """
@@ -202,14 +194,14 @@ class LaserOneMode(object):
         return fig, ax
     
     
-    def _calc_entropy(self):
-        """ Calculate von Neumann entropy given on the rho list
-        """
-        if len(self.rho_vs_t) == 0:
-            print("Solve the evolution equation first to obtain entropy!")
-            return
-        print("calculating von Neuman entropy ...")
-        self.entr_vs_t = np.array([entropy_vn(rho, 2) for rho in self.rho_vs_t])
+    # def _calc_entropy(self):
+    #     """ Calculate von Neumann entropy given on the rho list
+    #     """
+    #     if len(self.rho_vs_t) == 0:
+    #         print("Solve the evolution equation first to obtain entropy!")
+    #         return
+    #     print("calculating von Neuman entropy ...")
+    #     self.entr_vs_t = np.array([entropy_vn(rho, 2) for rho in self.rho_vs_t])
     
     
     def plot_entropy_vs_time(self):
@@ -229,10 +221,12 @@ class LaserOneMode(object):
     def plot_steady_wigner(self):
         """ Plot 2D wigner function of the steady state
         """
-        l2_pn, l2_rho = laser_above.get_steady_state() 
+        pass
         
 
-    # coefficients of the equation of motion for rho
+    # coefficients which define the differential equation of motion for rho
+    # refer to Eq. (11.1.14) Quantum Optics by Scully and Zubairy for details
+    
     def _M(self, n, m):
         return 0.5 * (n + m + 2) + (n - m)**2 * self.BdA / 8
 
@@ -287,8 +281,9 @@ class LaserOneMode(object):
     
     
     def solve_steady_state(self):
-        """ if the state is always diagonal during evolution
-            get the diagonal terms of the steady state
+        """ If the state is always diagonal during evolution,
+            get the diagonal terms of the steady state.
+            Solver: `scipy.sparse.lina`
         """
         eq = np.zeros([self.N_max, self.N_max])
         y = np.repeat(np.finfo(float).eps, self.N_max)
@@ -309,13 +304,16 @@ class LaserOneMode(object):
         return pn, n, entr
 
     
-    def solve_steady_state_two(self):
-        """ if the state is always diagonal during evolution
-            get the diagonal terms of the steady state
+    def solve_steady_state_lst(self):
+        """ If the state is always diagonal during evolution,
+            get the diagonal terms of the steady state.
+            Solver: `scipy.sparse.linalg.lsqr()`.
+            Since none-zeor solutions are not existed, 
+            use `lsqr` to find the solution with the least squared error.
         """
         eq = np.zeros([self.N_max, self.N_max])
-        y = np.repeat(np.finfo(float).eps, self.N_max)
-        # y = np.repeat(0, self.N_max)
+        # y = np.repeat(np.finfo(float).eps, self.N_max)
+        y = np.repeat(0, self.N_max)
 
         for k in range(self.N_max):
             eq[k, k] = self._fnm(k, k)
@@ -323,7 +321,7 @@ class LaserOneMode(object):
                 eq[k, k + 1] = self._hnm(k, k)
             if k > 0:
                 eq[k, k - 1] = self._gnm(k, k)        
-        pn = lstsq(eq, y)[0]
+        pn = lsqr(eq, y)[0]
         
         pn = pn/sum(pn)
         n = sum(pn * range(self.N_max))

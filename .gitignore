@@ -6,5 +6,5 @@
 *.sty
 *.dat
 .ipynb_checkpoints
+__pycache__
 test.ipynb
-qutip-lectures
