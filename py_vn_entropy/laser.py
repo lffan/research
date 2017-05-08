@@ -82,6 +82,7 @@ class LaserOneMode(object):
         """
         return self.rho_vs_t
     
+    
     def get_ns(self):
         """ return average photon number vs. time
         """
@@ -91,16 +92,25 @@ class LaserOneMode(object):
     def get_entrs(self):
         """ return entropy vs. time
         """
-        return self.entrs_vs_t
+        return self.entr_vs_t
     
     
-    def aver_n_above(self):
+    def nbar_above_approx(self):
         """ Calculate the average photon number in steady state
-            for a laser operated **above threshold**
+            for a laser operated **above threshold** (analytic approximaiton)
         """
         return self.A * (self.A - self.kappa) / self.kappa / self.B
     
-        
+    
+    def nbar_numeric(self):
+        """ Calcuate the average photon number for the last state
+        """
+        pns = self.pn_vs_t[-1]
+        nbar = np.sum([n * pns[n] for n in np.arange(self.N_max)])
+        norm = np.sum(pns)
+        return norm, nbar
+    
+    
     # solve the ode for pn, if rho only contains diagonal terms, reconstruct rho
     def pn_evolve(self, init_state, N_max, t_list, diag=False):
         """ **ode solver for pn**
@@ -192,16 +202,6 @@ class LaserOneMode(object):
         ax.set_title("Average Photon Number vs. Time", fontsize=14)
         ax.tick_params(axis='both', which='major', labelsize=14)
         return fig, ax
-    
-    
-    # def _calc_entropy(self):
-    #     """ Calculate von Neumann entropy given on the rho list
-    #     """
-    #     if len(self.rho_vs_t) == 0:
-    #         print("Solve the evolution equation first to obtain entropy!")
-    #         return
-    #     print("calculating von Neuman entropy ...")
-    #     self.entr_vs_t = np.array([entropy_vn(rho, 2) for rho in self.rho_vs_t])
     
     
     def plot_entropy_vs_time(self):
