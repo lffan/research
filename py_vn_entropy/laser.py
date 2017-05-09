@@ -361,4 +361,4 @@ class LaserOneMode(object):
 def boltzmann(ratio, N_max):
     """ return an array of pn according to the boltzmann distribution
     """
-    return np.array([(1 - ratio) * ratio ** n for n in np.arange(N_max)])    
+    return np.array([(1 - ratio) * ratio ** n for n in np.arange(N_max)])
