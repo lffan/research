@@ -38,16 +38,18 @@ def entropy_vs_ratio(ratios, t_list, g, kappa, nbar, N_max, init_psi):
     return l_dict, n_dict, entr_dict
 
 
-def df_plot(df, xlim, ylim, xlabel, ylabel, entr_cohe=False, entr_thml=False):
+def df_plot(df, xlim, ylim, xlabel, ylabel, style, \
+            entr_cohe=False, entr_thml=False):
     """ df plot
     """
-    df.plot(x='gt', xlim=xlim, ylim=ylim, 
-             figsize=(8, 6), fontsize=14)
+    df.plot(x='gt', xlim=xlim, ylim=ylim, style=style,
+             figsize=(6, 4), fontsize=14)
     plt.xlabel(xlabel, fontsize=14)
     plt.ylabel(ylabel, fontsize=14)
-    if entr_cohe:
-        plt.axhline(y=entr_cohe, color='red', \
-                    linestyle='-.', label='coherent')
-        plt.axhline(y=entr_thml, color='black', \
+    if entr_thml:
+        plt.axhline(y=entr_thml, color='black', linewidth=0.5, \
                     linestyle='--', label='thermal')
+    if entr_cohe:
+        plt.axhline(y=entr_cohe, color='red', linewidth=0.5, \
+                    linestyle='-', label='coherent')
     plt.legend(fontsize=14, loc=4)
