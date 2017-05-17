@@ -135,9 +135,9 @@ class LaserOneMode(object):
         
         # solve the ode for pn
         self.pn_vs_t = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,))
-        step = round(len(t_list) / 100)
-        self.t_list = t_list[::step]
-        self.pn_vs_t = self.pn_vs_t[::step]
+        # step = round(len(t_list) / 100)
+        # self.t_list = t_list[::step]
+        # self.pn_vs_t = self.pn_vs_t[::step]
         
         # reconstruct rho from pn if only the main diagonal terms exist
         self.rho_vs_t = np.array([Qobj(np.diag(pn)) for pn in self.pn_vs_t])
@@ -177,6 +177,10 @@ class LaserOneMode(object):
 
         # sovle the ode
         self.arrays = odeint(self._rho_nm_dot, init_array, t_list, args=(f, g, h, ))
+        # step = round(len(t_list) / 100)
+        # self.t_list = t_list[::step]
+        # self.arrays = self.arrays[::step]
+        
 
         # convert arrays back to density matrices (rhos)
         self.rho_vs_t = np.array([Qobj(a.reshape(self.N_max, self.N_max)) 

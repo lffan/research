@@ -17,9 +17,9 @@ def entropy_vs_ratio(ratios, t_list, g, kappa, nbar, N_max, init_psi, solver='pn
         return {'g': g, 'gamma': gamma, 'C': kappa, 'ra': ra,
                 'A': 2 * ra * g**2 / gamma**2, 'B': 8 * ra * g**4 / gamma**4}
     
-    step = round(len(t_list) / 100)
-    n_dict = {'gt': t_list[::step] * g}
-    entr_dict = {'gt': t_list[::step] * g}
+    # step = round(len(t_list) / 100)
+    n_dict = {'gt': t_list * g}
+    entr_dict = {'gt': t_list * g}
     l_dict = {}
 
     for alpha in ratios:
