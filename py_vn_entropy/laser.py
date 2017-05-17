@@ -8,6 +8,9 @@ from scipy.sparse.linalg import spsolve, lsqr
 from scipy.stats import poisson
 from scipy.sparse import csr_matrix
 
+from multiprocessing import Pool
+from multiprocessing.dummy import Pool as ThreadPool
+
 from qutip import *
 
 __author__ = "Longfei Fan"
@@ -273,18 +276,47 @@ class LaserOneMode(object):
         """ ode update rul for rho_nm
         """
         rho = rho_nm.reshape(self.N_max, self.N_max)
-        rho_new = np.zeros([self.N_max, self.N_max])
+        # rho_new = np.zeros([self.N_max, self.N_max])
+        ns = range(self.N_max)
+        
+        
+        
+        def helper(ij):
+            i, j = ij
+            result = f[i, j] * rho[i, j]
+            if i > 0 and j > 0:
+                result += g[i, j] * rho[i - 1, j - 1]
+            if i < self.N_max - 1 and j < self.N_max - 1:
+                result += h[i, j] * rho[i + 1, j + 1]
+            return result
+        # rho_new = np.array([[helper(i, j) for j in ns] for i in ns])
+        
+        # method 2:
+        # ijpairs = [(i, j) for j in ns for i in ns]
+        # results = list(map(helper, ijpairs))
+        
+        # return results
+        
+        # method 3:
+        pool = ThreadPool(4)
+        ijpairs = [(i, j) for j in ns for i in ns]
+        results = pool.map(helper, ijpairs)
+        pool.close()
+        pool.join()
+        
+        return results
+        
+        # method 1: 
+        # ij = range(self.N_max)
+        # for i in ij:
+        #     for j in ij:
+        #         rho_new[i, j] += f[i, j] * rho[i, j]
+        #         if i > 0 and j > 0:
+        #             rho_new[i, j] += g[i, j] * rho[i - 1, j - 1]
+        #         if i < self.N_max - 1 and j < self.N_max - 1:
+        #             rho_new[i, j] += h[i, j] * rho[i + 1, j + 1]
 
-        ij = range(self.N_max)
-        for i in ij:
-            for j in ij:
-                rho_new[i, j] += f[i, j] * rho[i, j]
-                if i > 0 and j > 0:
-                    rho_new[i, j] += g[i, j] * rho[i - 1, j - 1]
-                if i < self.N_max - 1 and j < self.N_max - 1:
-                    rho_new[i, j] += h[i, j] * rho[i + 1, j + 1]
-
-        return rho_new.reshape(-1)
+        # return rho_new.reshape(-1)
     
     
     def solve_steady_state(self):
