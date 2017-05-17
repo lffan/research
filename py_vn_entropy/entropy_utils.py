@@ -6,7 +6,7 @@ import seaborn as sns
 from qutip import *
 import laser
 
-def entropy_vs_ratio(ratios, t_list, g, kappa, nbar, N_max, init_psi):
+def entropy_vs_ratio(ratios, t_list, g, kappa, nbar, N_max, init_psi, solver='pn'):
     """ simulate lasers with different A/C ratios
     """
     def get_para(ratio, nbar, kappa, g):
@@ -28,10 +28,13 @@ def entropy_vs_ratio(ratios, t_list, g, kappa, nbar, N_max, init_psi):
         print('ratio: {:>5.2f}, ra: {:3.4f}, A: {:.3e}, C: {:.3e}, B: {:.3e}\n'. \
               format(alpha, ra, paras['A'], kappa, paras['B']))
         l = laser.LaserOneMode(g, ra, gamma, kappa)
-        l.pn_evolve(init_psi, N_max, t_list)
+        if solver == 'pn':
+            l.pn_evolve(init_psi, N_max, t_list)
+        elif solver == 'rho':
+            l.rho_evolve(init_psi, N_max, t_list)
         
         key = '{:.2f}'.format(alpha)
-        l_dict[key] = l
+        # l_dict[key] = l
         n_dict[key] = l.get_ns()
         entr_dict[key] = l.get_entrs()
 

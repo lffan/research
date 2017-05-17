@@ -112,7 +112,7 @@ class LaserOneMode(object):
     
     
     # solve the ode for pn, if rho only contains diagonal terms, reconstruct rho
-    def pn_evolve(self, init_state, N_max, t_list, diag=False):
+    def pn_evolve(self, init_state, N_max, t_list):
         """ **ode solver for pn**
             init_pn: an array, initial diagonal terms of rho
             N_max: truncted photon numbers
@@ -187,6 +187,9 @@ class LaserOneMode(object):
         
         # find average photon numbers
         self.n_vs_t = np.array([sum(pn * n_list) for pn in self.pn_vs_t])
+        
+        # find von Neumann entropy
+        self.entr_vs_t = np.array([entropy_vn(rho) for rho in self.rho_vs_t])
         
     
     def plot_n_vs_time(self):
