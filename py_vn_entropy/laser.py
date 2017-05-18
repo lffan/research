@@ -271,31 +271,31 @@ class LaserOneMode(object):
         rho = rho_nm.reshape(self.N_max, self.N_max)
         
         # method 1: 
-        # rho_new = np.zeros([self.N_max, self.N_max])
-        # ij = range(self.N_max)
-        # for i in ij:
-        #     for j in ij:
-        #         rho_new[i, j] += f[i, j] * rho[i, j]
-        #         if i > 0 and j > 0:
-        #             rho_new[i, j] += g[i, j] * rho[i - 1, j - 1]
-        #         if i < self.N_max - 1 and j < self.N_max - 1:
-        #             rho_new[i, j] += h[i, j] * rho[i + 1, j + 1]
-        # return rho_new.reshape(-1)
+        rho_new = np.zeros([self.N_max, self.N_max])
+        ij = range(self.N_max)
+        for i in ij:
+            for j in ij:
+                rho_new[i, j] += f[i, j] * rho[i, j]
+                if i > 0 and j > 0:
+                    rho_new[i, j] += g[i, j] * rho[i - 1, j - 1]
+                if i < self.N_max - 1 and j < self.N_max - 1:
+                    rho_new[i, j] += h[i, j] * rho[i + 1, j + 1]
+        return rho_new.reshape(-1)
         
-        def helper(ij):
-            i, j = ij
-            result = f[i, j] * rho[i, j]
-            if i > 0 and j > 0:
-                result += g[i, j] * rho[i - 1, j - 1]
-            if i < self.N_max - 1 and j < self.N_max - 1:
-                result += h[i, j] * rho[i + 1, j + 1]
-            return result
+        # def helper(ij):
+        #     i, j = ij
+        #     result = f[i, j] * rho[i, j]
+        #     if i > 0 and j > 0:
+        #         result += g[i, j] * rho[i - 1, j - 1]
+        #     if i < self.N_max - 1 and j < self.N_max - 1:
+        #         result += h[i, j] * rho[i + 1, j + 1]
+        #     return result
         
         # method 2:
-        ijpairs = [(i, j) for j in range(self.N_max) for i in range(self.N_max)]
-        # rho_new = np.array([helper(ij) for ij in ijpairs])
-        rho_new = list(map(helper, ijpairs))
-        return rho_new
+        # ijpairs = [(i, j) for j in range(self.N_max) for i in range(self.N_max)]
+        # # rho_new = np.array([helper(ij) for ij in ijpairs])
+        # rho_new = list(map(helper, ijpairs))
+        # return rho_new
         
         # method 3:
         # pool = ThreadPool(4)

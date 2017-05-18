@@ -5,6 +5,7 @@
 *.tex
 *.sty
 *.dat
+*.npz
 .ipynb_checkpoints
 __pycache__
 test.*
