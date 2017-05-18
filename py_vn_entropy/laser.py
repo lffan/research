@@ -138,10 +138,7 @@ class LaserOneMode(object):
         
         # solve the ode for pn
         self.pn_vs_t = odeint(self._pn_dot, init_pn, t_list, args=(f, g, h,))
-        # step = round(len(t_list) / 100)
-        # self.t_list = t_list[::step]
-        # self.pn_vs_t = self.pn_vs_t[::step]
-        
+
         # reconstruct rho from pn if only the main diagonal terms exist
         self.rho_vs_t = np.array([Qobj(np.diag(pn)) for pn in self.pn_vs_t])
         
@@ -180,10 +177,6 @@ class LaserOneMode(object):
 
         # sovle the ode
         self.arrays = odeint(self._rho_nm_dot, init_array, t_list, args=(f, g, h, ))
-        # step = round(len(t_list) / 100)
-        # self.t_list = t_list[::step]
-        # self.arrays = self.arrays[::step]
-        
 
         # convert arrays back to density matrices (rhos)
         self.rho_vs_t = np.array([Qobj(a.reshape(self.N_max, self.N_max)) 
@@ -276,10 +269,18 @@ class LaserOneMode(object):
         """ ode update rul for rho_nm
         """
         rho = rho_nm.reshape(self.N_max, self.N_max)
+        
+        # method 1: 
         # rho_new = np.zeros([self.N_max, self.N_max])
-        ns = range(self.N_max)
-        
-        
+        # ij = range(self.N_max)
+        # for i in ij:
+        #     for j in ij:
+        #         rho_new[i, j] += f[i, j] * rho[i, j]
+        #         if i > 0 and j > 0:
+        #             rho_new[i, j] += g[i, j] * rho[i - 1, j - 1]
+        #         if i < self.N_max - 1 and j < self.N_max - 1:
+        #             rho_new[i, j] += h[i, j] * rho[i + 1, j + 1]
+        # return rho_new.reshape(-1)
         
         def helper(ij):
             i, j = ij
@@ -289,34 +290,21 @@ class LaserOneMode(object):
             if i < self.N_max - 1 and j < self.N_max - 1:
                 result += h[i, j] * rho[i + 1, j + 1]
             return result
-        # rho_new = np.array([[helper(i, j) for j in ns] for i in ns])
         
         # method 2:
-        # ijpairs = [(i, j) for j in ns for i in ns]
-        # results = list(map(helper, ijpairs))
-        
-        # return results
+        ijpairs = [(i, j) for j in range(self.N_max) for i in range(self.N_max)]
+        # rho_new = np.array([helper(ij) for ij in ijpairs])
+        rho_new = list(map(helper, ijpairs))
+        return rho_new
         
         # method 3:
-        pool = ThreadPool(4)
-        ijpairs = [(i, j) for j in ns for i in ns]
-        results = pool.map(helper, ijpairs)
-        pool.close()
-        pool.join()
-        
-        return results
-        
-        # method 1: 
-        # ij = range(self.N_max)
-        # for i in ij:
-        #     for j in ij:
-        #         rho_new[i, j] += f[i, j] * rho[i, j]
-        #         if i > 0 and j > 0:
-        #             rho_new[i, j] += g[i, j] * rho[i - 1, j - 1]
-        #         if i < self.N_max - 1 and j < self.N_max - 1:
-        #             rho_new[i, j] += h[i, j] * rho[i + 1, j + 1]
-
-        # return rho_new.reshape(-1)
+        # pool = ThreadPool(4)
+        # # pool = Pool(4)
+        # ijpairs = [(i, j) for j in range(self.N_max)  for i in range(self.N_max)]
+        # rho_new = pool.map(helper, ijpairs)
+        # pool.close()
+        # pool.join()
+        # return rho_new
     
     
     def solve_steady_state(self):
