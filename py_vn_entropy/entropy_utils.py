@@ -1,12 +1,12 @@
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-from multiprocessing import Pool
-from multiprocessing.dummy import Pool as ThreadPool
-
-from functools import partial
+# from multiprocessing import Pool
+# from multiprocessing.dummy import Pool as ThreadPool
 
 from qutip import *
 import laser
@@ -31,7 +31,9 @@ def entropy_vs_ratio(ratios, t_list, g, kappa, nbar, N_max, init_psi, solver='pn
     for alpha in ratios:
         paras = get_para(alpha, nbar, kappa, g)
         g, ra, gamma, kappa = paras['g'], paras['ra'], paras['gamma'], paras['C']
-        print('ratio: {:>5.2f}, ra: {:3.4f}, A: {:.3e}, C: {:.3e}, B: {:.3e}'. \
+
+        print(str(datetime.now()))
+        print('ratio: {:>5.2f}, ra: {:3.4f}, A: {:.3e}, C: {:.3e}, B: {:.3e}\n'. \
               format(alpha, ra, paras['A'], kappa, paras['B']))
         l = laser.LaserOneMode(g, ra, gamma, kappa)
         if solver == 'pn':
@@ -43,6 +45,8 @@ def entropy_vs_ratio(ratios, t_list, g, kappa, nbar, N_max, init_psi, solver='pn
         l_dict[key] = l
         n_dict[key] = l.get_ns()
         entr_dict[key] = l.get_entrs()
+
+    print(str(datetime.now()))
 
     return l_dict, n_dict, entr_dict
 
