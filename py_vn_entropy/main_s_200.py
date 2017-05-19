@@ -27,10 +27,10 @@ import laser, entropy_utils
 # In[3]:
 
 G = 0.001
-KAPPA = 0.0001
-NBAR = 200
+KAPPA = 0.0002
+NBAR = 100
 
-N_max = 400
+N_max = 200
 n_list = np.arange(N_max)
 s_op = squeeze(N_max, 1)
 vac = fock(N_max, 0)
@@ -70,7 +70,7 @@ print('ENTROPY THERMAL: {:.4f}\n'.format(ENTR_THML))
 # In[12]:
 
 ratios1 = (1.2, 4, 16)
-t_list1 = np.linspace(0, 60000, 401)
+t_list1 = np.linspace(0, 200, 401)
 l1, n1, entr1 = entropy_utils.entropy_vs_ratio( \
     ratios1, t_list1, G, KAPPA, NBAR, N_max, init_psi, solver='rho')
 
