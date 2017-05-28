@@ -69,20 +69,20 @@ print('ENTROPY THERMAL: {:.4f}\n'.format(ENTR_THML))
 
 # In[12]:
 
-ratios1 = (1.05, 1.1, 1.2)
-t_list1 = np.linspace(0, 60000, 201)
-l1, n1, entr1 = entropy_utils.entropy_vs_ratio( \
-    ratios1, t_list1, G, KAPPA, NBAR, N_max, init_psi, solver='rho')
+# ratios1 = (1.05, 1.1, 1.2)
+# t_list1 = np.linspace(0, 60000, 201)
+# l1, n1, entr1 = entropy_utils.entropy_vs_ratio( \
+#     ratios1, t_list1, G, KAPPA, NBAR, N_max, init_psi, solver='rho')
 
 
 # In[13]:
 
-n1_df = pd.DataFrame(n1, columns=n1.keys() )
-entr1_df = pd.DataFrame(entr1, columns=entr1.keys())
+# n1_df = pd.DataFrame(n1, columns=n1.keys() )
+# entr1_df = pd.DataFrame(entr1, columns=entr1.keys())
 
-n1_df.to_csv('./data/sv_n1_df.csv', index=False)
-entr1_df.to_csv('./data/sv_entr1_df.csv', index=False)
-np.savez('./data/sv_l1.npz', lasers=l1)
+# n1_df.to_csv('./data/sv_n1_df.csv', index=False)
+# entr1_df.to_csv('./data/sv_entr1_df.csv', index=False)
+# np.savez('./data/sv_l1.npz', lasers=l1)
 
 
 # ### Medium Ratios -----------------------------------------------------------
@@ -109,17 +109,17 @@ np.savez('./data/sv_l1.npz', lasers=l1)
 
 # In[20]:
 
-# ratios3 = (8, 16, 64, 256)
-# t_list3 = np.linspace(0, 20000, 201)
-# l3, n3, entr3 = entropy_utils.entropy_vs_ratio( \
-#     ratios3, t_list3, G, KAPPA, NBAR, N_max, init_psi, solver='rho')
+ratios3 = (8, 16, 64, 256)
+t_list3 = np.linspace(0, 20000, 201)
+l3, n3, entr3 = entropy_utils.entropy_vs_ratio( \
+    ratios3, t_list3, G, KAPPA, NBAR, N_max, init_psi, solver='rho')
 
 
 # In[21]:
 
-# n3_df = pd.DataFrame(n3, columns=n3.keys() )
-# entr3_df = pd.DataFrame(entr3, columns=entr3.keys())
+n3_df = pd.DataFrame(n3, columns=n3.keys() )
+entr3_df = pd.DataFrame(entr3, columns=entr3.keys())
 
-# n3_df.to_csv('./data/sv_n3_df.csv', index=False)
-# entr3_df.to_csv('./data/sv_entr3_df.csv', index=False)
-# np.savez('./data/sv_l3.npz', lasers=l3)
+n3_df.to_csv('./data/sv_n3_df.csv', index=False)
+entr3_df.to_csv('./data/sv_entr3_df.csv', index=False)
+np.savez('./data/sv_l3.npz', lasers=l3)
