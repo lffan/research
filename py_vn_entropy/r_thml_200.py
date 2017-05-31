@@ -30,7 +30,7 @@ G = 0.001
 KAPPA = 0.0001
 
 NBAR = 200
-N_max = 1000
+N_max = 1200
 n_list = np.arange(N_max)
 
 
@@ -43,7 +43,7 @@ n_list = np.arange(N_max)
 # svac = s_op * vac
 
 # thermal state
-n_thml = 1
+n_thml = 20
 thml = thermal_dm(N_max, n_thml)
 
 

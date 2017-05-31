@@ -27,10 +27,10 @@ import laser, entropy_utils
 # In[3]:
 
 G = 0.001
-KAPPA = 0.001
-NBAR = 20
+KAPPA = 0.0001
+NBAR = 200
 
-N_max = 100
+N_max = 1000
 n_list = np.arange(N_max)
 s_op = squeeze(N_max, 2)
 vac = fock(N_max, 0)
