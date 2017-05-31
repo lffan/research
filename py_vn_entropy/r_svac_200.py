@@ -22,19 +22,33 @@ import seaborn as sns
 from scipy.stats import poisson
 
 from qutip import *
-import laser, entropy_utils
+import laser, entropy_utils_svac
 
 # In[3]:
 
 G = 0.001
 KAPPA = 0.001
-NBAR = 20
 
+NBAR = 20
 N_max = 100
 n_list = np.arange(N_max)
-s_op = squeeze(N_max, 2)
-vac = fock(N_max, 0)
-init_psi = ket2dm(s_op * vac) # initial cavity state## Average Photon Number $\bar{n} = 200$
+
+
+# vacuum
+vacu = fock(N_max, 0)
+
+# squeezed vacuum
+s = 1
+s_op = squeeze(N_max, s)
+svac = s_op * vacu
+
+# thermal state
+# n_thml = 1
+# thml = thermal_dm(N_max, n_thml)
+
+
+init_psi = svac
+solver = 'rho'
 
 
 # In[4]:
@@ -69,40 +83,40 @@ print('ENTROPY THERMAL: {:.4f}\n'.format(ENTR_THML))
 
 # In[12]:
 
-# ratios1 = (1.05, 1.1, 1.2)
-# t_list1 = np.linspace(0, 60000, 201)
-# l1, n1, entr1 = entropy_utils.entropy_vs_ratio( \
-#     ratios1, t_list1, G, KAPPA, NBAR, N_max, init_psi, solver='rho')
+ratios1 = (1.05, 1.1, 1.2)
+t_list1 = np.linspace(0, 10000, 101)
+l1, n1, entr1 = entropy_utils_svac.entropy_vs_ratio( \
+    ratios1, t_list1, G, KAPPA, NBAR, N_max, init_psi, solver)
 
 
 # In[13]:
 
-# n1_df = pd.DataFrame(n1, columns=n1.keys() )
-# entr1_df = pd.DataFrame(entr1, columns=entr1.keys())
+n1_df = pd.DataFrame(n1, columns=n1.keys() )
+entr1_df = pd.DataFrame(entr1, columns=entr1.keys())
 
-# n1_df.to_csv('./data/sv_n1_df.csv', index=False)
-# entr1_df.to_csv('./data/sv_entr1_df.csv', index=False)
-# np.savez('./data/sv_l1.npz', lasers=l1)
+n1_df.to_csv('./data/200_svac_n1_df.csv', index=False)
+entr1_df.to_csv('./data/200_svac_entr1_df.csv', index=False)
+np.savez('./data/200_svac_l1.npz', lasers=l1)
 
 
 # ### Medium Ratios -----------------------------------------------------------
 
 # In[16]:
 
-# ratios2 = (1.6, 2, 4)
-# t_list2 = np.linspace(0, 40000, 201)
-# l2, n2, entr2 = entropy_utils.entropy_vs_ratio( \
-#     ratios2, t_list2, G, KAPPA, NBAR, N_max, init_psi, solver='rho')
+ratios2 = (1.6, 2, 4)
+t_list2 = np.linspace(0, 4000, 101)
+l2, n2, entr2 = entropy_utils_svac.entropy_vs_ratio( \
+    ratios2, t_list2, G, KAPPA, NBAR, N_max, init_psi, solver)
 
 
 # # In[17]:
 
-# n2_df = pd.DataFrame(n2, columns=sorted(n2.keys()))
-# entr2_df = pd.DataFrame(entr2, columns=sorted(entr2.keys()))
+n2_df = pd.DataFrame(n2, columns=sorted(n2.keys()))
+entr2_df = pd.DataFrame(entr2, columns=sorted(entr2.keys()))
 
-# n2_df.to_csv('./data/sv_n2_df.csv', index=False)
-# entr2_df.to_csv('./data/sv_entr2_df.csv', index=False)
-# np.savez('./data/sv_l2.npz', lasers=l2)
+n2_df.to_csv('./data/200_svac_n2_df.csv', index=False)
+entr2_df.to_csv('./data/200_svac_entr2_df.csv', index=False)
+np.savez('./data/200_svac_l2.npz', lasers=l2)
 
 
 # ### Large Ratios ------------------------------------------------------------
@@ -110,16 +124,16 @@ print('ENTROPY THERMAL: {:.4f}\n'.format(ENTR_THML))
 # In[20]:
 
 ratios3 = (8, 16, 64, 256)
-t_list3 = np.linspace(0, 20000, 201)
-l3, n3, entr3 = entropy_utils.entropy_vs_ratio( \
-    ratios3, t_list3, G, KAPPA, NBAR, N_max, init_psi, solver='rho')
+t_list3 = np.linspace(0, 2000, 101)
+l3, n3, entr3 = entropy_utils_svac.entropy_vs_ratio( \
+    ratios3, t_list3, G, KAPPA, NBAR, N_max, init_psi, solver)
 
 
-# In[21]:
+# # In[21]:
 
 n3_df = pd.DataFrame(n3, columns=n3.keys() )
 entr3_df = pd.DataFrame(entr3, columns=entr3.keys())
 
-n3_df.to_csv('./data/sv_n3_df.csv', index=False)
-entr3_df.to_csv('./data/sv_entr3_df.csv', index=False)
-np.savez('./data/sv_l3.npz', lasers=l3)
+n3_df.to_csv('./data/200_svac_n3_df.csv', index=False)
+entr3_df.to_csv('./data/200_svac_entr3_df.csv', index=False)
+np.savez('./data/200_svac_l3.npz', lasers=l3)
